@@ -13,7 +13,6 @@ import (
 )
 
 func main() {
-
 	mongoUri := os.Getenv("MONGO_URL")
 	databaseName := os.Getenv("MONGO_DATABASE_NAME")
 	r, err := repositories.NewRepositories(context.Background(), mongoUri, databaseName)
