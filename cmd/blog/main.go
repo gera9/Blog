@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -23,5 +24,9 @@ func main() {
 	s := &services.Services{UsersRepository: r, PostsRepository: r}
 	mm := &middlewares.MiddlewareManager{}
 
-	http.ListenAndServe(":3000", controllers.BuildRoutes(s, mm))
+	addr := fmt.Sprintf(":%s", os.Getenv("APP_PORT"))
+
+	log.Println("Listening on addr:", addr)
+
+	http.ListenAndServe(addr, controllers.BuildRoutes(s, mm))
 }
