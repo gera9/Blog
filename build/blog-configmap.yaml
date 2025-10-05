@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blog-configmap
+data:
+  mongo_database_name: blog
+  app_port: "3000"
+  mongo_url: mongodb://username:password@mongodb-service:27017

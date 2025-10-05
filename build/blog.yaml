@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blog
+spec:
+  selector:
+    matchLabels:
+      app: blog
+  template:
+    metadata:
+      labels:
+        app: blog
+    spec:
+      containers:
+        - name: blog
+          image: gera9/blog:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MONGO_URL
+              valueFrom:
+                secretKeyRef:
+                  name: blog-secret
+                  key: mongo_url
+            - name: MONGO_DATABASE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: blog-configmap
+                  key: mongo_database_name
+            - name: APP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: blog-configmap
+                  key: app_port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blog-service
+spec:
+  selector:
+    app: blog
+  type: LoadBalancer
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30001
