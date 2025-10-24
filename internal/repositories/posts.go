@@ -5,101 +5,127 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
-	"go.mongodb.org/mongo-driver/v2/bson"
+	"github.com/google/uuid"
 )
 
-type PostModel struct {
-	Id        bson.ObjectID `bson:"_id,omitempty"`
-	Title     string        `bson:"title,omitempty"`
-	Extract   string        `bson:"extract,omitempty"`
-	Content   string        `bson:"content,omitempty"`
-	AuthorId  bson.ObjectID `bson:"author_id,omitempty"`
-	CreatedAt time.Time     `bson:"created_at,omitempty"`
-	UpdatedAt time.Time     `bson:"updated_at,omitempty"`
-}
+const postsTableName = "posts"
 
-const postsCollName = "posts"
-
-func (r repositories) CreatePost(ctx context.Context, post models.Post) (string, error) {
-	coll := r.Database().Collection(postsCollName)
-
-	m, err := toPostModel(post)
-	if err != nil {
-		return "", err
+func (r repositories) CreatePost(ctx context.Context, post models.Post) (uuid.UUID, error) {
+	now := time.Now().UTC()
+	if post.CreatedAt.IsZero() {
+		post.CreatedAt = now
+	}
+	if post.UpdatedAt.IsZero() {
+		post.UpdatedAt = now
 	}
 
-	return Create(ctx, coll, m)
+	sql := `INSERT INTO ` + postsTableName + ` (
+		title, extract, content, author_id, created_at, updated_at
+	) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`
+
+	var returnedID uuid.UUID
+	err := r.connPool.QueryRow(ctx, sql,
+		post.Title,
+		post.Extract,
+		post.Content,
+		post.AuthorId,
+		post.CreatedAt,
+		post.UpdatedAt,
+	).Scan(&returnedID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return returnedID, nil
 }
 
 func (r repositories) FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error) {
-	coll := r.Database().Collection(postsCollName)
+	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
+	FROM ` + postsTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
-	posts := []PostModel{}
-	err := FindAll(ctx, coll, limit, offset, &posts)
+	rows, err := r.connPool.Query(ctx, sql, limit, offset)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	results := make([]models.Post, len(posts))
-	for i, post := range posts {
-		results[i] = post.toPost()
+	posts := make([]models.Post, 0)
+	for rows.Next() {
+		var post models.Post
+		err := rows.Scan(
+			&post.Id,
+			&post.Title,
+			&post.Extract,
+			&post.Content,
+			&post.AuthorId,
+			&post.CreatedAt,
+			&post.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
 	}
 
-	return results, nil
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return posts, nil
 }
 
-func (r repositories) FindPostById(ctx context.Context, id string) (models.Post, error) {
-	coll := r.Database().Collection(postsCollName)
+func (r repositories) FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error) {
+	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
+	FROM ` + postsTableName + ` WHERE id = $1`
 
-	post := PostModel{}
-	err := FindById(ctx, coll, id, &post)
+	var post models.Post
+	err := r.connPool.QueryRow(ctx, sql, id).Scan(
+		&post.Id,
+		&post.Title,
+		&post.Extract,
+		&post.Content,
+		&post.AuthorId,
+		&post.CreatedAt,
+		&post.UpdatedAt,
+	)
 	if err != nil {
 		return models.Post{}, err
 	}
 
-	return post.toPost(), nil
+	return post, nil
 }
 
-func (r repositories) UpdatePostById(ctx context.Context, id string, post models.Post) error {
-	coll := r.Database().Collection(postsCollName)
+func (r repositories) UpdatePostById(ctx context.Context, id uuid.UUID, post models.Post) error {
+	sql := `UPDATE ` + postsTableName + ` SET
+		title = $1,
+		extract = $2,
+		content = $3,
+		author_id = $4,
+		updated_at = $5
+	WHERE id = $6`
 
-	m, err := toPostModel(post)
+	_, err := r.connPool.Exec(ctx, sql,
+		post.Title,
+		post.Extract,
+		post.Content,
+		post.AuthorId,
+		time.Now().UTC(),
+		id,
+	)
 	if err != nil {
 		return err
 	}
 
-	return UpdateById(ctx, coll, id, m)
+	return nil
 }
 
-func (r repositories) DeletePostById(ctx context.Context, id string) error {
-	coll := r.Database().Collection(postsCollName)
-	return DeleteById(ctx, coll, id)
-}
+func (r repositories) DeletePostById(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM ` + postsTableName + ` WHERE id = $1`
 
-func toPostModel(post models.Post) (PostModel, error) {
-	authorOid, err := bson.ObjectIDFromHex(post.AuthorId)
+	_, err := r.connPool.Exec(ctx, sql, id)
 	if err != nil {
-		return PostModel{}, err
+		return err
 	}
 
-	return PostModel{
-		Title:     post.Title,
-		Extract:   post.Extract,
-		Content:   post.Content,
-		AuthorId:  authorOid,
-		CreatedAt: post.CreatedAt,
-		UpdatedAt: post.UpdatedAt,
-	}, nil
-}
-
-func (m PostModel) toPost() models.Post {
-	return models.Post{
-		Id:        m.Id.Hex(),
-		Title:     m.Title,
-		Extract:   m.Extract,
-		Content:   m.Content,
-		AuthorId:  m.AuthorId.Hex(),
-		CreatedAt: m.CreatedAt,
-		UpdatedAt: m.UpdatedAt,
-	}
+	return nil
 }

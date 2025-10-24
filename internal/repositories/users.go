@@ -2,93 +2,175 @@ package repositories
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/gera9/blog/internal/models"
-	"go.mongodb.org/mongo-driver/v2/bson"
+	"github.com/google/uuid"
 )
 
-type UserModel struct {
-	Id             bson.ObjectID `bson:"_id,omitempty"`
-	FirstName      string        `bson:"first_name,omitempty"`
-	LastName       string        `bson:"last_name,omitempty"`
-	Email          string        `bson:"email,omitempty"`
-	Username       string        `bson:"username,omitempty"`
-	HashedPassword string        `bson:"hashed_password,omitempty"`
-	BirthDate      time.Time     `bson:"birth_date,omitempty"`
-	CreatedAt      time.Time     `bson:"created_at,omitempty"`
-	UpdatedAt      time.Time     `bson:"updated_at,omitempty"`
-}
+const usersTableName = "users"
 
-const usersCollName = "users"
+func (r repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+	// prepare values
+	id := uuid.New()
+	now := time.Now().UTC()
+	if user.CreatedAt.IsZero() {
+		user.CreatedAt = now
+	}
+	if user.UpdatedAt.IsZero() {
+		user.UpdatedAt = now
+	}
 
-func (r repositories) CreateUser(ctx context.Context, user models.User) (string, error) {
-	coll := r.Database().Collection(usersCollName)
-	return Create(ctx, coll, toUserModel(user))
+	sql := `INSERT INTO ` + usersTableName + ` (
+		id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
+	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`
+
+	var returnedID uuid.UUID
+	err := r.connPool.QueryRow(ctx, sql,
+		id,
+		user.FirstName,
+		user.LastName,
+		user.Email,
+		user.Username,
+		user.HashedPassword,
+		user.BirthDate,
+		user.CreatedAt,
+		user.UpdatedAt,
+	).Scan(&returnedID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return returnedID, nil
 }
 
 func (r repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
-	coll := r.Database().Collection(usersCollName)
+	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
+	FROM ` + usersTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
-	users := []UserModel{}
-	err := FindAll(ctx, coll, limit, offset, &users)
+	rows, err := r.connPool.Query(ctx, sql, limit, offset)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	results := make([]models.User, len(users))
-	for i, user := range users {
-		results[i] = user.toUser()
+	users := make([]models.User, 0)
+	for rows.Next() {
+		var (
+			id         uuid.UUID
+			firstName  string
+			lastName   string
+			email      string
+			username   string
+			hashedPass string
+			birthDate  time.Time
+			createdAt  time.Time
+			updatedAt  time.Time
+		)
+
+		if err := rows.Scan(&id, &firstName, &lastName, &email, &username, &hashedPass, &birthDate, &createdAt, &updatedAt); err != nil {
+			return nil, err
+		}
+
+		users = append(users, models.User{
+			Id:             id,
+			FirstName:      firstName,
+			LastName:       lastName,
+			Email:          email,
+			Username:       username,
+			HashedPassword: hashedPass,
+			BirthDate:      birthDate,
+			CreatedAt:      createdAt,
+			UpdatedAt:      updatedAt,
+		})
 	}
 
-	return results, nil
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return users, nil
 }
 
-func (r repositories) FindUserById(ctx context.Context, id string) (models.User, error) {
-	coll := r.Database().Collection(usersCollName)
+func (r repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
+	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
+	FROM ` + usersTableName + ` WHERE id = $1`
 
-	user := UserModel{}
-	err := FindById(ctx, coll, id, &user)
+	var (
+		uuid       uuid.UUID
+		firstName  string
+		lastName   string
+		email      string
+		username   string
+		hashedPass string
+		birthDate  time.Time
+		createdAt  time.Time
+		updatedAt  time.Time
+	)
+
+	err := r.connPool.QueryRow(ctx, sql, id).Scan(&uuid, &firstName, &lastName, &email, &username, &hashedPass, &birthDate, &createdAt, &updatedAt)
 	if err != nil {
 		return models.User{}, err
 	}
 
-	return user.toUser(), nil
-}
-
-func (r repositories) UpdateUserById(ctx context.Context, id string, user models.User) error {
-	coll := r.Database().Collection(usersCollName)
-	return UpdateById(ctx, coll, id, toUserModel(user))
-}
-
-func (r repositories) DeleteUserById(ctx context.Context, id string) error {
-	coll := r.Database().Collection(usersCollName)
-	return DeleteById(ctx, coll, id)
-}
-
-func toUserModel(user models.User) UserModel {
-	return UserModel{
-		FirstName:      user.FirstName,
-		LastName:       user.LastName,
-		Email:          user.Email,
-		Username:       user.Username,
-		HashedPassword: user.HashedPassword,
-		BirthDate:      user.BirthDate,
-		UpdatedAt:      user.UpdatedAt,
-		CreatedAt:      user.CreatedAt,
-	}
-}
-
-func (m UserModel) toUser() models.User {
 	return models.User{
-		Id:             m.Id.Hex(),
-		FirstName:      m.FirstName,
-		LastName:       m.LastName,
-		Email:          m.Email,
-		Username:       m.Username,
-		HashedPassword: m.HashedPassword,
-		BirthDate:      m.BirthDate,
-		UpdatedAt:      m.UpdatedAt,
-		CreatedAt:      m.CreatedAt,
+		Id:             uuid,
+		FirstName:      firstName,
+		LastName:       lastName,
+		Email:          email,
+		Username:       username,
+		HashedPassword: hashedPass,
+		BirthDate:      birthDate,
+		CreatedAt:      createdAt,
+		UpdatedAt:      updatedAt,
+	}, nil
+}
+
+func (r repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
+	// update the allowed fields and updated_at
+	now := time.Now().UTC()
+
+	sql := `UPDATE ` + usersTableName + ` SET
+		first_name = $1,
+		last_name = $2,
+		email = $3,
+		username = $4,
+		hashed_password = $5,
+		updated_at = $6
+	WHERE id = $7`
+
+	tag, err := r.connPool.Exec(ctx, sql,
+		user.FirstName,
+		user.LastName,
+		user.Email,
+		user.Username,
+		user.HashedPassword,
+		now,
+		id,
+	)
+	if err != nil {
+		return err
 	}
+
+	if tag.RowsAffected() == 0 {
+		return errors.New("no rows updated")
+	}
+
+	return nil
+}
+
+func (r repositories) DeleteUserById(ctx context.Context, id uuid.UUID) error {
+	sql := `DELETE FROM ` + usersTableName + ` WHERE id = $1`
+
+	tag, err := r.connPool.Exec(ctx, sql, id)
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return errors.New("no rows deleted")
+	}
+
+	return nil
 }

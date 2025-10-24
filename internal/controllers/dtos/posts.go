@@ -4,13 +4,14 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
+	"github.com/google/uuid"
 )
 
 type CreatePost struct {
-	Title    string `json:"title"`
-	Extract  string `json:"extract"`
-	Content  string `json:"content"`
-	AuthorId string `json:"author_id"`
+	Title    string    `json:"title"`
+	Extract  string    `json:"extract"`
+	Content  string    `json:"content"`
+	AuthorId uuid.UUID `json:"author_id"`
 }
 
 func (cp CreatePost) ToPost() models.Post {
@@ -37,11 +38,11 @@ func (up UpdatePost) ToPost() models.Post {
 }
 
 type PostResponse struct {
-	Id        string    `json:"id"`
+	Id        uuid.UUID `json:"id"`
 	Title     string    `json:"title"`
 	Extract   string    `json:"extract"`
 	Content   string    `json:"content"`
-	AuthorId  string    `json:"author_id"`
+	AuthorId  uuid.UUID `json:"author_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

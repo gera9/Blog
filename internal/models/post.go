@@ -1,13 +1,17 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type Post struct {
-	Id        string
+	Id        uuid.UUID
 	Title     string
 	Extract   string
 	Content   string
-	AuthorId  string
+	AuthorId  uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

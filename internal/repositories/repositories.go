@@ -4,13 +4,11 @@ import (
 	"context"
 	"sync"
 
-	"go.mongodb.org/mongo-driver/v2/mongo"
-	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type repositories struct {
-	client   *mongo.Client
-	database string
+	connPool *pgxpool.Pool
 }
 
 var (
@@ -18,23 +16,29 @@ var (
 	instance *repositories
 )
 
-func NewRepositories(ctx context.Context, uri, database string) (*repositories, error) {
+func NewRepositories(ctx context.Context, connStr string) (*repositories, error) {
 	var err error
 	once.Do(func() {
-		clientOpts := options.Client().ApplyURI(uri)
-
-		var client *mongo.Client
-		client, err = mongo.Connect(clientOpts)
+		var cfg *pgxpool.Config
+		cfg, err = pgxpool.ParseConfig(connStr)
 		if err != nil {
 			return
 		}
 
-		err = client.Ping(ctx, nil)
+		cfg.ConnConfig.TLSConfig = nil
+
+		var connPool *pgxpool.Pool
+		connPool, err = pgxpool.NewWithConfig(ctx, cfg)
 		if err != nil {
 			return
 		}
 
-		instance = &repositories{client, database}
+		err = connPool.Ping(ctx)
+		if err != nil {
+			return
+		}
+
+		instance = &repositories{connPool}
 	})
 	if err != nil {
 		return nil, err
@@ -43,6 +47,6 @@ func NewRepositories(ctx context.Context, uri, database string) (*repositories, 
 	return instance, nil
 }
 
-func (r repositories) Database() *mongo.Database {
-	return r.client.Database(r.database)
+func (r repositories) Close() {
+	r.connPool.Close()
 }

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
+	"github.com/google/uuid"
 )
 
 type CreateUser struct {
@@ -45,7 +46,7 @@ func (uu UpdateUser) ToUser() models.User {
 }
 
 type UserResponse struct {
-	Id             string    `json:"id"`
+	Id             uuid.UUID `json:"id"`
 	FirstName      string    `json:"first_name"`
 	LastName       string    `json:"last_name"`
 	Email          string    `json:"email"`

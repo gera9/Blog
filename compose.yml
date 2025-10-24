@@ -1,26 +1,54 @@
+# Use postgres/example user/password credentials
 services:
-  mongo:
-    image: mongo
+  postgres:
+    image: postgres
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: example
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: blog
+    ports:
+      - "5432:5432"
     networks:
       - net
-    ports:
-      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./migrations:/migrations
+    command:
+      [
+        "-path",
+        "/migrations",
+        "-database",
+        "postgres://postgres:example@postgres/blog?sslmode=disable",
+        "up",
+      ]
+    networks:
+      - net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   blog:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
     depends_on:
-      - mongo
+      postgres:
+        condition: service_healthy
     networks:
       - net
     ports:
       - "3000:3000"
     env_file:
       - .env
+    volumes:
+      - ./:/blog
 
 networks:
   net:

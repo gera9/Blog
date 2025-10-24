@@ -14,9 +14,8 @@ import (
 )
 
 func main() {
-	mongoUri := os.Getenv("MONGO_URL")
-	databaseName := os.Getenv("MONGO_DATABASE_NAME")
-	r, err := repositories.NewRepositories(context.Background(), mongoUri, databaseName)
+	postgresConnStr := os.Getenv("POSTGRES_URL")
+	r, err := repositories.NewRepositories(context.Background(), postgresConnStr)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"github.com/google/uuid"
 
 	"github.com/gera9/blog/internal/controllers/dtos"
 	"github.com/gera9/blog/internal/models"
@@ -12,11 +13,11 @@ import (
 )
 
 type UsersService interface {
-	CreateUser(ctx context.Context, user models.User) (string, error)
+	CreateUser(ctx context.Context, user models.User) (uuid.UUID, error)
 	FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error)
-	FindUserById(ctx context.Context, id string) (models.User, error)
-	UpdateUserById(ctx context.Context, id string, user models.User) error
-	DeleteUserById(ctx context.Context, id string) error
+	FindUserById(ctx context.Context, id uuid.UUID) (models.User, error)
+	UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error
+	DeleteUserById(ctx context.Context, id uuid.UUID) error
 }
 
 type usersController struct {
@@ -90,7 +91,13 @@ func (c usersController) FindAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c usersController) FindById(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
+		return
+	}
 
 	user, err := c.usersService.FindUserById(r.Context(), id)
 	if err != nil {
@@ -106,11 +113,16 @@ func (c usersController) FindById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c usersController) UpdateById(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
+		return
+	}
 
 	userPayload := dtos.UpdateUser{}
-	err := json.NewDecoder(r.Body).Decode(&userPayload)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&userPayload); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": err.Error(),
@@ -131,9 +143,15 @@ func (c usersController) UpdateById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c usersController) DeleteById(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	idStr := chi.URLParam(r, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "invalid id"})
+		return
+	}
 
-	err := c.usersService.DeleteUserById(r.Context(), id)
+	err = c.usersService.DeleteUserById(r.Context(), id)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
