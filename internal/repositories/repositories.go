@@ -4,11 +4,13 @@ import (
 	"context"
 	"sync"
 
+	"github.com/gera9/blog/pkg/utils"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repositories struct {
-	connPool *pgxpool.Pool
+	connPool     *pgxpool.Pool
+	timeProvider utils.TimeProvider
 }
 
 var (
@@ -16,7 +18,7 @@ var (
 	instance *Repositories
 )
 
-func NewRepositories(ctx context.Context, connStr string) (*Repositories, error) {
+func NewRepositories(ctx context.Context, connStr string, timeProvider utils.TimeProvider) (*Repositories, error) {
 	var err error
 	once.Do(func() {
 		var cfg *pgxpool.Config
@@ -38,7 +40,7 @@ func NewRepositories(ctx context.Context, connStr string) (*Repositories, error)
 			return
 		}
 
-		instance = &Repositories{connPool}
+		instance = &Repositories{connPool, timeProvider}
 	})
 	if err != nil {
 		return nil, err

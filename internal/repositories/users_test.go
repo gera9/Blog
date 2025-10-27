@@ -9,6 +9,7 @@ import (
 	"github.com/gera9/blog/internal/models"
 	"github.com/gera9/blog/internal/repositories"
 	"github.com/gera9/blog/internal/repositories/testhelpers"
+	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
@@ -30,10 +31,12 @@ func (suite *CustomerRepoTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 	suite.pgContainer = pgContainer
-	repository, err := repositories.NewRepositories(suite.ctx, suite.pgContainer.ConnectionString)
+
+	repository, err := repositories.NewRepositories(suite.ctx, suite.pgContainer.ConnectionString, utils.MockClock{})
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	suite.repository = repository
 }
 
@@ -69,8 +72,8 @@ func (suite *CustomerRepoTestSuite) TestFindAllUsers() {
 					Username:       "alice_s",
 					HashedPassword: "hashed_pwd_1",
 					BirthDate:      time.Date(1990, 4, 12, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
-					UpdatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
+					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 				},
 				{
 					Id:             uuid.MustParse("b2ccc80d-606e-422f-a9e1-5fd7371163db"),
@@ -80,8 +83,8 @@ func (suite *CustomerRepoTestSuite) TestFindAllUsers() {
 					Username:       "bobby_j",
 					HashedPassword: "hashed_pwd_2",
 					BirthDate:      time.Date(1988, 9, 25, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
-					UpdatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
+					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 				},
 				{
 					Id:             uuid.MustParse("2cdc1c8f-9985-4b6c-b007-038a5bef22b5"),
@@ -91,8 +94,8 @@ func (suite *CustomerRepoTestSuite) TestFindAllUsers() {
 					Username:       "charlie_b",
 					HashedPassword: "hashed_pwd_3",
 					BirthDate:      time.Date(1995, 2, 7, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
-					UpdatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
+					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 				},
 			},
 		},
@@ -221,8 +224,8 @@ func (suite *CustomerRepoTestSuite) TestGetUserrById() {
 		Username:       "alice_s",
 		HashedPassword: "hashed_pwd_1",
 		BirthDate:      time.Date(1990, 4, 12, 0, 0, 0, 0, time.UTC),
-		CreatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
-		UpdatedAt:      time.Date(2006, 01, 02, 3, 0, 0, 0, time.Local),
+		CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+		UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 	}, customer)
 }
 

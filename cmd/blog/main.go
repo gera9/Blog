@@ -11,11 +11,12 @@ import (
 	"github.com/gera9/blog/internal/repositories"
 	"github.com/gera9/blog/internal/services"
 	"github.com/gera9/blog/pkg/middlewares"
+	"github.com/gera9/blog/pkg/utils"
 )
 
 func main() {
 	postgresConnStr := os.Getenv("POSTGRES_URL")
-	r, err := repositories.NewRepositories(context.Background(), postgresConnStr)
+	r, err := repositories.NewRepositories(context.Background(), postgresConnStr, utils.RealClock{})
 	if err != nil {
 		log.Fatal(err)
 	}

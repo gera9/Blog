@@ -24,7 +24,10 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		return nil, err
 	}
 
-	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
+	connStr, err := pgContainer.ConnectionString(ctx,
+		"sslmode=disable",
+		"timezone=UTC",
+	)
 	if err != nil {
 		return nil, err
 	}

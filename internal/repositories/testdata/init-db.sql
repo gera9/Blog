@@ -23,9 +23,9 @@ CREATE TABLE IF NOT EXISTS posts (
 -- Insert users
 INSERT INTO users (id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at)
 VALUES
-    ('0853f607-2422-4631-8526-832edaa479c4', 'Alice', 'Smith', 'alice@example.com', 'alice_s', 'hashed_pwd_1', '1990-04-12', '2006-01-02 09:00:00', '2006-01-02 09:00:00'),
-    ('b2ccc80d-606e-422f-a9e1-5fd7371163db', 'Bob', 'Johnson', 'bob@example.com', 'bobby_j', 'hashed_pwd_2', '1988-09-25', '2006-01-02 09:00:00', '2006-01-02 09:00:00'),
-    ('2cdc1c8f-9985-4b6c-b007-038a5bef22b5', 'Charlie', 'Brown', 'charlie@example.com', 'charlie_b', 'hashed_pwd_3', '1995-02-07', '2006-01-02 09:00:00', '2006-01-02 09:00:00');
+    ('0853f607-2422-4631-8526-832edaa479c4', 'Alice', 'Smith', 'alice@example.com', 'alice_s', 'hashed_pwd_1', '1990-04-12', '2006-01-02 00:00 UTC', '2006-01-02 00:00 UTC'),
+    ('b2ccc80d-606e-422f-a9e1-5fd7371163db', 'Bob', 'Johnson', 'bob@example.com', 'bobby_j', 'hashed_pwd_2', '1988-09-25', '2006-01-02 00:00 UTC', '2006-01-02 00:00 UTC'),
+    ('2cdc1c8f-9985-4b6c-b007-038a5bef22b5', 'Charlie', 'Brown', 'charlie@example.com', 'charlie_b', 'hashed_pwd_3', '1995-02-07', '2006-01-02 00:00 UTC', '2006-01-02 00:00 UTC');
 
 -- Insert posts for User 1 (2 posts)
 INSERT INTO posts (id, title, extract, content, author_id)

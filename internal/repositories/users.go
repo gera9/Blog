@@ -14,7 +14,7 @@ const usersTableName = "users"
 func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
 	// prepare values
 	id := uuid.New()
-	now := time.Now().UTC()
+	now := r.timeProvider.Now().UTC()
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = now
 	}
@@ -73,6 +73,9 @@ func (r Repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]mo
 			return nil, err
 		}
 
+		createdAt = createdAt.UTC()
+		updatedAt = updatedAt.UTC()
+
 		users = append(users, models.User{
 			Id:             id,
 			FirstName:      firstName,
@@ -114,6 +117,9 @@ func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.Us
 		return models.User{}, err
 	}
 
+	createdAt = createdAt.UTC()
+	updatedAt = updatedAt.UTC()
+
 	return models.User{
 		Id:             uuid,
 		FirstName:      firstName,
@@ -129,7 +135,7 @@ func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.Us
 
 func (r Repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
 	// update the allowed fields and updated_at
-	now := time.Now().UTC()
+	now := r.timeProvider.Now().UTC()
 
 	sql := `UPDATE ` + usersTableName + ` SET
 		first_name = $1,
