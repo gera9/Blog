@@ -2,14 +2,10 @@ package repositories_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
 	"github.com/gera9/blog/internal/models"
-	"github.com/gera9/blog/internal/repositories"
-	"github.com/gera9/blog/internal/repositories/testhelpers"
-	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
@@ -18,32 +14,14 @@ import (
 
 type UsersRepoTestSuite struct {
 	suite.Suite
-	pgContainer *testhelpers.PostgresContainer
-	repository  *repositories.Repositories
-	ctx         context.Context
+	ctx context.Context
 }
 
 func (suite *UsersRepoTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-
-	pgContainer, err := testhelpers.NewPostgresContainer(suite.ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.pgContainer = pgContainer
-
-	repository, err := repositories.NewRepositories(suite.ctx, suite.pgContainer.ConnectionString, utils.MockClock{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	suite.repository = repository
 }
 
 func (suite *UsersRepoTestSuite) TearDownSuite() {
-	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
-		log.Fatalf("error terminating postgres container: %s", err)
-	}
 }
 
 func TestUsersRepoTestSuite(t *testing.T) {
@@ -106,10 +84,10 @@ func (suite *UsersRepoTestSuite) TestFindAllUsers() {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := suite.repository.FindAllUsers(suite.ctx, tt.limit, tt.offset)
+			got, gotErr := Repository.FindAllUsers(suite.ctx, tt.limit, tt.offset)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
@@ -195,17 +173,17 @@ func (suite *UsersRepoTestSuite) TestCreateUser() {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			insertedId, gotErr := suite.repository.CreateUser(suite.ctx, tt.user)
+			insertedId, gotErr := Repository.CreateUser(suite.ctx, tt.user)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
 
 			assert.NotEqual(t, insertedId, uuid.Nil)
 
-			err := suite.repository.DeleteUserById(suite.ctx, insertedId)
+			err := Repository.DeleteUserById(suite.ctx, insertedId)
 			if err != nil {
 				t.Fail()
 			}
@@ -216,7 +194,7 @@ func (suite *UsersRepoTestSuite) TestCreateUser() {
 func (suite *UsersRepoTestSuite) TestGetUserrById() {
 	t := suite.T()
 
-	customer, err := suite.repository.FindUserById(suite.ctx, uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"))
+	customer, err := Repository.FindUserById(suite.ctx, uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"))
 	assert.NoError(t, err)
 	assert.NotNil(t, customer)
 	assert.Equal(t, models.User{

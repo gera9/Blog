@@ -2,14 +2,10 @@ package repositories_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
 	"github.com/gera9/blog/internal/models"
-	"github.com/gera9/blog/internal/repositories"
-	"github.com/gera9/blog/internal/repositories/testhelpers"
-	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
@@ -18,32 +14,14 @@ import (
 
 type PostsRepoTestSuite struct {
 	suite.Suite
-	pgContainer *testhelpers.PostgresContainer
-	repository  *repositories.Repositories
-	ctx         context.Context
+	ctx context.Context
 }
 
 func (suite *PostsRepoTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-
-	pgContainer, err := testhelpers.NewPostgresContainer(suite.ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	suite.pgContainer = pgContainer
-
-	repository, err := repositories.NewRepositories(suite.ctx, suite.pgContainer.ConnectionString, utils.MockClock{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	suite.repository = repository
 }
 
 func (suite *PostsRepoTestSuite) TearDownSuite() {
-	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
-		log.Fatalf("error terminating postgres container: %s", err)
-	}
 }
 
 func TestPostsRepoTestSuite(t *testing.T) {
@@ -73,17 +51,17 @@ func (suite *PostsRepoTestSuite) TestCreatePost() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			insertedId, gotErr := suite.repository.CreatePost(suite.ctx, tt.post)
+			insertedId, gotErr := Repository.CreatePost(suite.ctx, tt.post)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
 
 			assert.NotEqual(t, insertedId, uuid.Nil)
 
-			err := suite.repository.DeletePostById(suite.ctx, insertedId)
+			err := Repository.DeletePostById(suite.ctx, insertedId)
 			if err != nil {
 				t.Fail()
 			}
@@ -127,10 +105,10 @@ func (suite *PostsRepoTestSuite) TestFindPostById() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := suite.repository.FindPostByIdAndAuthorId(suite.ctx, tt.postId, tt.authorId)
+			got, gotErr := Repository.FindPostByIdAndAuthorId(suite.ctx, tt.postId, tt.authorId)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
@@ -184,10 +162,10 @@ func (suite *PostsRepoTestSuite) TestFindAllPosts() {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := suite.repository.FindAllPosts(suite.ctx, tt.limit, tt.offset, tt.authorId)
+			got, gotErr := Repository.FindAllPosts(suite.ctx, tt.limit, tt.offset, tt.authorId)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
@@ -216,10 +194,10 @@ func (suite *PostsRepoTestSuite) TestDeletePostById() {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotErr := suite.repository.DeletePostById(suite.ctx, tt.postId)
+			gotErr := Repository.DeletePostById(suite.ctx, tt.postId)
 			if tt.wantErr {
 				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr)
+					assert.Equal(t, tt.err, gotErr, gotErr.Error())
 				}
 				return
 			}
