@@ -11,7 +11,7 @@ import (
 
 const usersTableName = "users"
 
-func (r repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
 	// prepare values
 	id := uuid.New()
 	now := time.Now().UTC()
@@ -45,7 +45,7 @@ func (r repositories) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	return returnedID, nil
 }
 
-func (r repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
+func (r Repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
 	FROM ` + usersTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -93,7 +93,7 @@ func (r repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]mo
 	return users, nil
 }
 
-func (r repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
+func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
 	FROM ` + usersTableName + ` WHERE id = $1`
 
@@ -127,7 +127,7 @@ func (r repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.Us
 	}, nil
 }
 
-func (r repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
+func (r Repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
 	// update the allowed fields and updated_at
 	now := time.Now().UTC()
 
@@ -160,7 +160,7 @@ func (r repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user mod
 	return nil
 }
 
-func (r repositories) DeleteUserById(ctx context.Context, id uuid.UUID) error {
+func (r Repositories) DeleteUserById(ctx context.Context, id uuid.UUID) error {
 	sql := `DELETE FROM ` + usersTableName + ` WHERE id = $1`
 
 	tag, err := r.connPool.Exec(ctx, sql, id)

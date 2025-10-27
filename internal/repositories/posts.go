@@ -10,7 +10,7 @@ import (
 
 const postsTableName = "posts"
 
-func (r repositories) CreatePost(ctx context.Context, post models.Post) (uuid.UUID, error) {
+func (r Repositories) CreatePost(ctx context.Context, post models.Post) (uuid.UUID, error) {
 	now := time.Now().UTC()
 	if post.CreatedAt.IsZero() {
 		post.CreatedAt = now
@@ -39,7 +39,7 @@ func (r repositories) CreatePost(ctx context.Context, post models.Post) (uuid.UU
 	return returnedID, nil
 }
 
-func (r repositories) FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error) {
+func (r Repositories) FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error) {
 	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
 	FROM ` + postsTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
@@ -74,7 +74,7 @@ func (r repositories) FindAllPosts(ctx context.Context, limit, offset int) ([]mo
 	return posts, nil
 }
 
-func (r repositories) FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error) {
+func (r Repositories) FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error) {
 	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
 	FROM ` + postsTableName + ` WHERE id = $1`
 
@@ -95,7 +95,7 @@ func (r repositories) FindPostById(ctx context.Context, id uuid.UUID) (models.Po
 	return post, nil
 }
 
-func (r repositories) UpdatePostById(ctx context.Context, id uuid.UUID, post models.Post) error {
+func (r Repositories) UpdatePostById(ctx context.Context, id uuid.UUID, post models.Post) error {
 	sql := `UPDATE ` + postsTableName + ` SET
 		title = $1,
 		extract = $2,
@@ -119,7 +119,7 @@ func (r repositories) UpdatePostById(ctx context.Context, id uuid.UUID, post mod
 	return nil
 }
 
-func (r repositories) DeletePostById(ctx context.Context, id uuid.UUID) error {
+func (r Repositories) DeletePostById(ctx context.Context, id uuid.UUID) error {
 	sql := `DELETE FROM ` + postsTableName + ` WHERE id = $1`
 
 	_, err := r.connPool.Exec(ctx, sql, id)

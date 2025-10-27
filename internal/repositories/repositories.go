@@ -7,16 +7,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type repositories struct {
+type Repositories struct {
 	connPool *pgxpool.Pool
 }
 
 var (
 	once     sync.Once
-	instance *repositories
+	instance *Repositories
 )
 
-func NewRepositories(ctx context.Context, connStr string) (*repositories, error) {
+func NewRepositories(ctx context.Context, connStr string) (*Repositories, error) {
 	var err error
 	once.Do(func() {
 		var cfg *pgxpool.Config
@@ -38,7 +38,7 @@ func NewRepositories(ctx context.Context, connStr string) (*repositories, error)
 			return
 		}
 
-		instance = &repositories{connPool}
+		instance = &Repositories{connPool}
 	})
 	if err != nil {
 		return nil, err
@@ -47,6 +47,10 @@ func NewRepositories(ctx context.Context, connStr string) (*repositories, error)
 	return instance, nil
 }
 
-func (r repositories) Close() {
+func (r Repositories) Pool() *pgxpool.Pool {
+	return r.connPool
+}
+
+func (r Repositories) Close() {
 	r.connPool.Close()
 }
