@@ -16,14 +16,14 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type CustomerRepoTestSuite struct {
+type UsersRepoTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	repository  *repositories.Repositories
 	ctx         context.Context
 }
 
-func (suite *CustomerRepoTestSuite) SetupSuite() {
+func (suite *UsersRepoTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 
 	pgContainer, err := testhelpers.NewPostgresContainer(suite.ctx)
@@ -40,13 +40,17 @@ func (suite *CustomerRepoTestSuite) SetupSuite() {
 	suite.repository = repository
 }
 
-func (suite *CustomerRepoTestSuite) TearDownSuite() {
+func (suite *UsersRepoTestSuite) TearDownSuite() {
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
 }
 
-func (suite *CustomerRepoTestSuite) TestFindAllUsers() {
+func TestUsersRepoTestSuite(t *testing.T) {
+	suite.Run(t, new(UsersRepoTestSuite))
+}
+
+func (suite *UsersRepoTestSuite) TestFindAllUsers() {
 	t := suite.T()
 
 	tests := []struct {
@@ -110,14 +114,13 @@ func (suite *CustomerRepoTestSuite) TestFindAllUsers() {
 				return
 			}
 
-			if assert.NoError(t, gotErr) {
-				assert.Equal(t, tt.want, got)
-			}
+			assert.NoError(t, gotErr)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
-func (suite *CustomerRepoTestSuite) TestCreateUser() {
+func (suite *UsersRepoTestSuite) TestCreateUser() {
 	t := suite.T()
 
 	tests := []struct {
@@ -210,7 +213,7 @@ func (suite *CustomerRepoTestSuite) TestCreateUser() {
 	}
 }
 
-func (suite *CustomerRepoTestSuite) TestGetUserrById() {
+func (suite *UsersRepoTestSuite) TestGetUserrById() {
 	t := suite.T()
 
 	customer, err := suite.repository.FindUserById(suite.ctx, uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"))
@@ -227,8 +230,4 @@ func (suite *CustomerRepoTestSuite) TestGetUserrById() {
 		CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 		UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
 	}, customer)
-}
-
-func TestCustomerRepoTestSuite(t *testing.T) {
-	suite.Run(t, new(CustomerRepoTestSuite))
 }

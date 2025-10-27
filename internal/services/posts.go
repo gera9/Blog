@@ -10,9 +10,9 @@ import (
 
 type PostsRepository interface {
 	CreatePost(ctx context.Context, post models.Post) (uuid.UUID, error)
-	FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error)
-	FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error)
-	UpdatePostById(ctx context.Context, id uuid.UUID, post models.Post) error
+	FindAllPosts(ctx context.Context, limit, offset int, authorId uuid.UUID) ([]models.Post, error)
+	FindPostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID) (models.Post, error)
+	UpdatePostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID, post models.Post) error
 	DeletePostById(ctx context.Context, id uuid.UUID) error
 }
 
@@ -20,16 +20,16 @@ func (s Services) CreatePost(ctx context.Context, post models.Post) (uuid.UUID, 
 	return s.PostsRepository.CreatePost(ctx, post)
 }
 
-func (s Services) FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error) {
-	return s.PostsRepository.FindAllPosts(ctx, limit, offset)
+func (s Services) FindAllPosts(ctx context.Context, limit, offset int, authorId uuid.UUID) ([]models.Post, error) {
+	return s.PostsRepository.FindAllPosts(ctx, limit, offset, authorId)
 }
 
-func (s Services) FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error) {
-	return s.PostsRepository.FindPostById(ctx, id)
+func (s Services) FindPostById(ctx context.Context, id, authorId uuid.UUID) (models.Post, error) {
+	return s.PostsRepository.FindPostByIdAndAuthorId(ctx, id, authorId)
 }
 
-func (s Services) UpdatePostById(ctx context.Context, id uuid.UUID, newPost models.Post) error {
-	post, err := s.PostsRepository.FindPostById(ctx, id)
+func (s Services) UpdatePostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID, newPost models.Post) error {
+	post, err := s.PostsRepository.FindPostByIdAndAuthorId(ctx, id, newPost.AuthorId)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (s Services) UpdatePostById(ctx context.Context, id uuid.UUID, newPost mode
 		return err
 	}
 
-	return s.PostsRepository.UpdatePostById(ctx, id, post)
+	return s.PostsRepository.UpdatePostByIdAndAuthorId(ctx, id, authorId, post)
 }
 
 func (s Services) DeletePostById(ctx context.Context, id uuid.UUID) error {

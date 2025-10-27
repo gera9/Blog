@@ -14,9 +14,9 @@ import (
 
 type PostsService interface {
 	CreatePost(ctx context.Context, post models.Post) (uuid.UUID, error)
-	FindAllPosts(ctx context.Context, limit, offset int) ([]models.Post, error)
-	FindPostById(ctx context.Context, id uuid.UUID) (models.Post, error)
-	UpdatePostById(ctx context.Context, id uuid.UUID, post models.Post) error
+	FindAllPosts(ctx context.Context, limit, offset int, authorId uuid.UUID) ([]models.Post, error)
+	FindPostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID) (models.Post, error)
+	UpdatePostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID, post models.Post) error
 	DeletePostById(ctx context.Context, id uuid.UUID) error
 }
 
@@ -72,7 +72,18 @@ func (c postsController) FindAll(w http.ResponseWriter, r *http.Request) {
 	limit := r.Context().Value(middlewares.ContextKeyLimit).(int)
 	offset := r.Context().Value(middlewares.ContextKeyOffset).(int)
 
-	posts, err := c.postsService.FindAllPosts(r.Context(), limit, offset)
+	q := r.URL.Query()
+	authorIdStr := q.Get("author_id")
+	authorId, err := uuid.Parse(authorIdStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid author_id UUID format",
+		})
+		return
+	}
+
+	posts, err := c.postsService.FindAllPosts(r.Context(), limit, offset, authorId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -100,7 +111,18 @@ func (c postsController) FindById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := c.postsService.FindPostById(r.Context(), id)
+	q := r.URL.Query()
+	authorIdStr := q.Get("author_id")
+	authorId, err := uuid.Parse(authorIdStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid author_id UUID format",
+		})
+		return
+	}
+
+	post, err := c.postsService.FindPostByIdAndAuthorId(r.Context(), id, authorId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -123,6 +145,17 @@ func (c postsController) UpdateById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	q := r.URL.Query()
+	authorIdStr := q.Get("author_id")
+	authorId, err := uuid.Parse(authorIdStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "invalid author_id UUID format",
+		})
+		return
+	}
+
 	postPayload := dtos.CreatePost{}
 	err = json.NewDecoder(r.Body).Decode(&postPayload)
 	if err != nil {
@@ -133,7 +166,7 @@ func (c postsController) UpdateById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = c.postsService.UpdatePostById(r.Context(), id, postPayload.ToPost())
+	err = c.postsService.UpdatePostByIdAndAuthorId(r.Context(), id, authorId, postPayload.ToPost())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
