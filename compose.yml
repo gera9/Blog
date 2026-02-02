@@ -36,7 +36,13 @@ services:
     volumes:
       - ./migrations:/migrations
     command:
-      ["-path", "/migrations", "-database", "${MIGRATION_POSTGRES_URL}", "up"]
+      [
+        "-path",
+        "/db/migrations",
+        "-database",
+        "${MIGRATION_POSTGRES_URL}",
+        "up",
+      ]
     networks:
       - net
     depends_on:
