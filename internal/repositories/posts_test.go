@@ -17,7 +17,6 @@ import (
 type postsTestsSuite struct {
 	suite.Suite
 	postsRepo *repositories.PostsRepository
-	ctx       context.Context
 }
 
 // This will run before running the suite

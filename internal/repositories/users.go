@@ -11,8 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const usersTableName = "users"
-
 type UsersRepository struct {
 	conn         *postgres.Postgres
 	timeProvider utils.TimeProvider
@@ -36,7 +34,7 @@ func (r UsersRepository) CreateUser(ctx context.Context, user models.User) (uuid
 		user.UpdatedAt = now
 	}
 
-	sql := `INSERT INTO ` + usersTableName + ` (
+	sql := `INSERT INTO ` + r.tableName + ` (
 		first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
 	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
 
@@ -60,7 +58,7 @@ func (r UsersRepository) CreateUser(ctx context.Context, user models.User) (uuid
 
 func (r UsersRepository) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
-	FROM ` + usersTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	FROM ` + r.tableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
 	rows, err := r.conn.Pool().Query(ctx, sql, limit, offset)
 	if err != nil {
@@ -111,7 +109,7 @@ func (r UsersRepository) FindAllUsers(ctx context.Context, limit, offset int) ([
 
 func (r UsersRepository) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
-	FROM ` + usersTableName + ` WHERE id = $1`
+	FROM ` + r.tableName + ` WHERE id = $1`
 
 	var (
 		uuid       uuid.UUID
@@ -150,7 +148,7 @@ func (r UsersRepository) UpdateUserById(ctx context.Context, id uuid.UUID, user 
 	// update the allowed fields and updated_at
 	now := r.timeProvider.Now().UTC()
 
-	sql := `UPDATE ` + usersTableName + ` SET
+	sql := `UPDATE ` + r.tableName + ` SET
 		first_name = $1,
 		last_name = $2,
 		email = $3,
@@ -180,7 +178,7 @@ func (r UsersRepository) UpdateUserById(ctx context.Context, id uuid.UUID, user 
 }
 
 func (r UsersRepository) DeleteUserById(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM ` + usersTableName + ` WHERE id = $1`
+	sql := `DELETE FROM ` + r.tableName + ` WHERE id = $1`
 
 	tag, err := r.conn.Pool().Exec(ctx, sql, id)
 	if err != nil {

@@ -9,8 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const postsTableName = "posts"
-
 type PostsRepository struct {
 	conn         *postgres.Postgres
 	timeProvider utils.TimeProvider
@@ -34,7 +32,7 @@ func (r PostsRepository) CreatePost(ctx context.Context, post models.Post) (uuid
 		post.UpdatedAt = now
 	}
 
-	sql := `INSERT INTO ` + postsTableName + ` (
+	sql := `INSERT INTO ` + r.tableName + ` (
 		title, extract, content, author_id, created_at, updated_at
 	) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`
 
@@ -56,7 +54,7 @@ func (r PostsRepository) CreatePost(ctx context.Context, post models.Post) (uuid
 
 func (r PostsRepository) FindAllPosts(ctx context.Context, limit, offset int, authorId uuid.UUID) ([]models.Post, error) {
 	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
-	FROM ` + postsTableName + ` WHERE author_id = $3 ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+	FROM ` + r.tableName + ` WHERE author_id = $3 ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
 	rows, err := r.conn.Pool().Query(ctx, sql, limit, offset, authorId)
 	if err != nil {
@@ -95,7 +93,7 @@ func (r PostsRepository) FindAllPosts(ctx context.Context, limit, offset int, au
 
 func (r PostsRepository) FindPostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID) (models.Post, error) {
 	sql := `SELECT id, title, extract, content, author_id, created_at, updated_at
-	FROM ` + postsTableName + ` WHERE id = $1 AND author_id = $2`
+	FROM ` + r.tableName + ` WHERE id = $1 AND author_id = $2`
 
 	var post models.Post
 	err := r.conn.Pool().QueryRow(ctx, sql, id, authorId).Scan(
@@ -118,7 +116,7 @@ func (r PostsRepository) FindPostByIdAndAuthorId(ctx context.Context, id, author
 }
 
 func (r PostsRepository) UpdatePostByIdAndAuthorId(ctx context.Context, id, authorId uuid.UUID, post models.Post) error {
-	sql := `UPDATE ` + postsTableName + ` SET
+	sql := `UPDATE ` + r.tableName + ` SET
 		title = $1,
 		extract = $2,
 		content = $3,
@@ -143,7 +141,7 @@ func (r PostsRepository) UpdatePostByIdAndAuthorId(ctx context.Context, id, auth
 }
 
 func (r PostsRepository) DeletePostById(ctx context.Context, id uuid.UUID) error {
-	sql := `DELETE FROM ` + postsTableName + ` WHERE id = $1`
+	sql := `DELETE FROM ` + r.tableName + ` WHERE id = $1`
 
 	_, err := r.conn.Pool().Exec(ctx, sql, id)
 	if err != nil {

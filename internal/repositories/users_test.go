@@ -18,7 +18,6 @@ import (
 type usersTestsSuite struct {
 	suite.Suite
 	usersRepo *repositories.UsersRepository
-	ctx       context.Context
 }
 
 // This will run before running the suite
