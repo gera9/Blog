@@ -7,19 +7,48 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
+	"github.com/gera9/blog/internal/repositories"
+	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
+
+type usersTestsSuite struct {
+	suite.Suite
+	usersRepo *repositories.UsersRepository
+	ctx       context.Context
+}
+
+// This will run before running the suite
+func (s *usersTestsSuite) SetupSuite() {
+	s.usersRepo = repositories.NewUsersRepository(PostgresConn, utils.MockClock{})
+}
+
+// This will run after the termination of the suite
+func (s *usersTestsSuite) TearDownSuite() {
+}
+
+// This will run before each test
+func (s *usersTestsSuite) SetupTest() {
+}
+
+// This will run after each test
+func (s *usersTestsSuite) TearDownTest() {
+	err := PostgresContainer.Restore(context.TODO())
+	require.NoError(s.T(), err)
+	PostgresConn.Pool().Reset()
+}
+
+func TestUsersRepoTestSuite(t *testing.T) {
+	suite.Run(t, new(usersTestsSuite))
+}
 
 var commonTime = time.Date(2006, time.January, 02, 0, 0, 0, 0, time.UTC)
 
-func TestRepositories_CreateUser(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *usersTestsSuite) TestCreateUser() {
+	t := s.T()
 
 	assertions := assert.New(t)
 
@@ -53,11 +82,10 @@ func TestRepositories_CreateUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			insertedId, gotErr := UsersRepo.CreateUser(tt.args.ctx, tt.args.user)
+			insertedId, gotErr := s.usersRepo.CreateUser(tt.args.ctx, tt.args.user)
 			if tt.wantErr {
 				assertions.Error(gotErr)
-				assertions.Equal(tt.err, gotErr)
-				return
+				require.Equal(t, tt.err, gotErr)
 			}
 
 			assertions.NoError(gotErr)
@@ -66,12 +94,8 @@ func TestRepositories_CreateUser(t *testing.T) {
 	}
 }
 
-func TestRepositories_FindAllUsers(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *usersTestsSuite) TestFindAllUsers() {
+	t := s.T()
 
 	assertions := assert.New(t)
 
@@ -133,10 +157,10 @@ func TestRepositories_FindAllUsers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := UsersRepo.FindAllUsers(tt.args.ctx, tt.args.limit, tt.args.offset)
+			got, gotErr := s.usersRepo.FindAllUsers(tt.args.ctx, tt.args.limit, tt.args.offset)
 			if tt.wantErr {
 				assertions.Error(gotErr)
-				assertions.Equal(tt.err, gotErr)
+				require.Equal(t, tt.err, gotErr)
 				return
 			}
 
@@ -146,12 +170,8 @@ func TestRepositories_FindAllUsers(t *testing.T) {
 	}
 }
 
-func TestRepositories_FindUserById(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *usersTestsSuite) TestFindUserById() {
+	t := s.T()
 
 	type args struct {
 		ctx context.Context
@@ -184,7 +204,7 @@ func TestRepositories_FindUserById(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := UsersRepo.FindUserById(tt.args.ctx, tt.args.id)
+			got, err := s.usersRepo.FindUserById(tt.args.ctx, tt.args.id)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Repositories.FindUserById() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -196,12 +216,8 @@ func TestRepositories_FindUserById(t *testing.T) {
 	}
 }
 
-func TestRepositories_UpdateUserById(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *usersTestsSuite) TestUpdateUserById() {
+	t := s.T()
 
 	type args struct {
 		ctx  context.Context
@@ -234,19 +250,15 @@ func TestRepositories_UpdateUserById(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UsersRepo.UpdateUserById(tt.args.ctx, tt.args.id, tt.args.user); (err != nil) != tt.wantErr {
+			if err := s.usersRepo.UpdateUserById(tt.args.ctx, tt.args.id, tt.args.user); (err != nil) != tt.wantErr {
 				t.Errorf("Repositories.UpdateUserById() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
 }
 
-func TestRepositories_DeleteUserById(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *usersTestsSuite) TestDeleteUserById() {
+	t := s.T()
 
 	type args struct {
 		ctx context.Context
@@ -267,7 +279,7 @@ func TestRepositories_DeleteUserById(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := UsersRepo.DeleteUserById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
+			if err := s.usersRepo.DeleteUserById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
 				t.Errorf("Repositories.DeleteUserById() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

@@ -6,17 +6,46 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
+	"github.com/gera9/blog/internal/repositories"
+	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestRepositories_CreatePost(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+type postsTestsSuite struct {
+	suite.Suite
+	postsRepo *repositories.PostsRepository
+	ctx       context.Context
+}
+
+// This will run before running the suite
+func (s *postsTestsSuite) SetupSuite() {
+	s.postsRepo = repositories.NewPostsRepository(PostgresConn, utils.MockClock{})
+}
+
+// This will run after the termination of the suite
+func (s *postsTestsSuite) TearDownSuite() {
+}
+
+// This will run before each test
+func (s *postsTestsSuite) SetupTest() {
+}
+
+// This will run after each test
+func (s *postsTestsSuite) TearDownTest() {
+	err := PostgresContainer.Restore(context.TODO())
+	require.NoError(s.T(), err)
+	PostgresConn.Pool().Reset()
+}
+
+func TestPostsRepoTestSuite(t *testing.T) {
+	suite.Run(t, new(postsTestsSuite))
+}
+
+func (s *postsTestsSuite) TestCreatePost() {
+	t := s.T()
 
 	assertions := assert.New(t)
 
@@ -47,11 +76,10 @@ func TestRepositories_CreatePost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			insertedId, gotErr := PostsRepo.CreatePost(tt.args.ctx, tt.args.post)
+			insertedId, gotErr := s.postsRepo.CreatePost(tt.args.ctx, tt.args.post)
 			if tt.wantErr {
 				assertions.Error(gotErr)
-				assertions.Equal(tt.err, gotErr)
-				return
+				require.Equal(t, tt.err, gotErr)
 			}
 
 			assertions.NoError(gotErr)
@@ -60,12 +88,8 @@ func TestRepositories_CreatePost(t *testing.T) {
 	}
 }
 
-func TestRepositories_FindAllPosts(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *postsTestsSuite) TestFindAllPosts() {
+	t := s.T()
 
 	assertions := assert.New(t)
 
@@ -116,11 +140,10 @@ func TestRepositories_FindAllPosts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := PostsRepo.FindAllPosts(tt.args.ctx, tt.args.limit, tt.args.offset, tt.args.authorId)
+			got, gotErr := s.postsRepo.FindAllPosts(tt.args.ctx, tt.args.limit, tt.args.offset, tt.args.authorId)
 			if tt.wantErr {
 				assertions.Error(gotErr)
-				assertions.Equal(tt.err, gotErr)
-				return
+				require.Equal(t, tt.err, gotErr)
 			}
 
 			assertions.NoError(gotErr)
@@ -129,12 +152,8 @@ func TestRepositories_FindAllPosts(t *testing.T) {
 	}
 }
 
-func TestRepositories_FindPostByIdAndAuthorId(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *postsTestsSuite) TestFindPostByIdAndAuthorId() {
+	t := s.T()
 
 	assertions := assert.New(t)
 
@@ -170,7 +189,7 @@ func TestRepositories_FindPostByIdAndAuthorId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := PostsRepo.FindPostByIdAndAuthorId(tt.args.ctx, tt.args.id, tt.args.authorId)
+			got, gotErr := s.postsRepo.FindPostByIdAndAuthorId(tt.args.ctx, tt.args.id, tt.args.authorId)
 			if tt.wantErr {
 				if assertions.Error(gotErr) {
 					assertions.Equal(tt.err, gotErr, gotErr.Error())
@@ -186,12 +205,8 @@ func TestRepositories_FindPostByIdAndAuthorId(t *testing.T) {
 	}
 }
 
-func TestRepositories_UpdatePostByIdAndAuthorId(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *postsTestsSuite) TestUpdatePostByIdAndAuthorId() {
+	t := s.T()
 
 	type args struct {
 		ctx      context.Context
@@ -224,7 +239,7 @@ func TestRepositories_UpdatePostByIdAndAuthorId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := PostsRepo.UpdatePostByIdAndAuthorId(tt.args.ctx, tt.args.id, tt.args.authorId, tt.args.post); (err != nil) != tt.wantErr {
+			if err := s.postsRepo.UpdatePostByIdAndAuthorId(tt.args.ctx, tt.args.id, tt.args.authorId, tt.args.post); (err != nil) != tt.wantErr {
 				t.Errorf("Repositories.UpdatePostByIdAndAuthorId() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
@@ -232,12 +247,8 @@ func TestRepositories_UpdatePostByIdAndAuthorId(t *testing.T) {
 	}
 }
 
-func TestRepositories_DeletePostById(t *testing.T) {
-	t.Cleanup(func() {
-		err := PostgresContainer.Restore(context.TODO())
-		require.NoError(t, err)
-		PostgresConn.Pool().Reset()
-	})
+func (s *postsTestsSuite) TestDeletePostById() {
+	t := s.T()
 
 	type args struct {
 		ctx context.Context
@@ -258,7 +269,7 @@ func TestRepositories_DeletePostById(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := PostsRepo.DeletePostById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
+			if err := s.postsRepo.DeletePostById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
 				t.Errorf("Repositories.DeletePostById() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

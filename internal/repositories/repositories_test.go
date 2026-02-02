@@ -6,18 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/gera9/blog/internal/repositories"
 	"github.com/gera9/blog/internal/repositories/testhelpers"
 	"github.com/gera9/blog/pkg/postgres"
-	"github.com/gera9/blog/pkg/utils"
 )
 
 var (
 	PostgresContainer *testhelpers.PostgresContainer
 	PostgresConn      *postgres.Postgres
-
-	UsersRepo *repositories.UsersRepository
-	PostsRepo *repositories.PostsRepository
 )
 
 func TestMain(m *testing.M) {
@@ -45,9 +40,6 @@ func SetUp() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	UsersRepo = repositories.NewUsersRepository(PostgresConn, utils.MockClock{})
-	PostsRepo = repositories.NewPostsRepository(PostgresConn, utils.MockClock{})
 }
 
 func TearDown() {
