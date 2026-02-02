@@ -49,6 +49,7 @@ func NewRepositories(ctx context.Context, connStr string, timeProvider utils.Tim
 	return instance, nil
 }
 
+// Get underlying connections pool.
 func (r Repositories) Pool() *pgxpool.Pool {
 	return r.connPool
 }

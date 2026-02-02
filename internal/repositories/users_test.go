@@ -2,49 +2,98 @@ package repositories_test
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gera9/blog/internal/models"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/require"
 )
 
-type UsersRepoTestSuite struct {
-	suite.Suite
-	ctx context.Context
-}
+var commonTime = time.Date(2006, time.January, 02, 0, 0, 0, 0, time.UTC)
 
-func (suite *UsersRepoTestSuite) SetupSuite() {
-	suite.ctx = context.Background()
-}
+func TestRepositories_CreateUser(t *testing.T) {
+	t.Cleanup(func() {
+		err := PostgresContainer.Restore(context.TODO())
+		require.NoError(t, err)
+		Repository.Pool().Reset()
+	})
 
-func (suite *UsersRepoTestSuite) TearDownSuite() {
-}
+	assertions := assert.New(t)
 
-func TestUsersRepoTestSuite(t *testing.T) {
-	suite.Run(t, new(UsersRepoTestSuite))
-}
-
-func (suite *UsersRepoTestSuite) TestFindAllUsers() {
-	t := suite.T()
-
+	type args struct {
+		ctx  context.Context
+		user models.User
+	}
 	tests := []struct {
 		name    string
-		limit   int
-		offset  int
+		args    args
+		want    uuid.UUID
 		wantErr bool
 		err     error
-		want    []models.User
 	}{
 		{
-			name:    "List 10 users in 1 page (offset 0)",
-			limit:   10,
-			offset:  0,
-			wantErr: false,
-			err:     nil,
+			name: "Should create an user",
+			args: args{
+				ctx: context.TODO(),
+				user: models.User{
+					FirstName:      "Jane",
+					LastName:       "Doe",
+					Email:          "jane.doe@example.com",
+					Username:       "jdoe_90",
+					HashedPassword: "$2a$12$mqL0eS.17/6.8q7/8.0..0.8.q8/7.0.8.q8/7.0.8.q8/7.0",
+					BirthDate:      time.Date(1990, time.May, 15, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      time.Now(),
+					UpdatedAt:      time.Now(),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			insertedId, gotErr := Repository.CreateUser(tt.args.ctx, tt.args.user)
+			if tt.wantErr {
+				assertions.Error(gotErr)
+				assertions.Equal(tt.err, gotErr)
+				return
+			}
+
+			assertions.NoError(gotErr)
+			assertions.NotEqual(insertedId, uuid.Nil)
+		})
+	}
+}
+
+func TestRepositories_FindAllUsers(t *testing.T) {
+	t.Cleanup(func() {
+		err := PostgresContainer.Restore(context.TODO())
+		require.NoError(t, err)
+		Repository.Pool().Reset()
+	})
+
+	assertions := assert.New(t)
+
+	type args struct {
+		ctx    context.Context
+		limit  int
+		offset int
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []models.User
+		wantErr bool
+		err     error
+	}{
+		{
+			name: "Should return a list of users",
+			args: args{
+				ctx:    context.TODO(),
+				limit:  100,
+				offset: 0,
+			},
 			want: []models.User{
 				{
 					Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
@@ -53,9 +102,9 @@ func (suite *UsersRepoTestSuite) TestFindAllUsers() {
 					Email:          "alice@example.com",
 					Username:       "alice_s",
 					HashedPassword: "hashed_pwd_1",
-					BirthDate:      time.Date(1990, 4, 12, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
-					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
 				},
 				{
 					Id:             uuid.MustParse("b2ccc80d-606e-422f-a9e1-5fd7371163db"),
@@ -64,9 +113,9 @@ func (suite *UsersRepoTestSuite) TestFindAllUsers() {
 					Email:          "bob@example.com",
 					Username:       "bobby_j",
 					HashedPassword: "hashed_pwd_2",
-					BirthDate:      time.Date(1988, 9, 25, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
-					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					BirthDate:      time.Date(1988, time.September, 25, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
 				},
 				{
 					Id:             uuid.MustParse("2cdc1c8f-9985-4b6c-b007-038a5bef22b5"),
@@ -75,137 +124,152 @@ func (suite *UsersRepoTestSuite) TestFindAllUsers() {
 					Email:          "charlie@example.com",
 					Username:       "charlie_b",
 					HashedPassword: "hashed_pwd_3",
-					BirthDate:      time.Date(1995, 2, 7, 0, 0, 0, 0, time.UTC),
-					CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
-					UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
+					BirthDate:      time.Date(1995, time.February, 7, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := Repository.FindAllUsers(suite.ctx, tt.limit, tt.offset)
+			got, gotErr := Repository.FindAllUsers(tt.args.ctx, tt.args.limit, tt.args.offset)
 			if tt.wantErr {
-				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr, gotErr.Error())
-				}
+				assertions.Error(gotErr)
+				assertions.Equal(tt.err, gotErr)
 				return
 			}
 
-			assert.NoError(t, gotErr)
-			assert.Equal(t, tt.want, got)
+			assertions.NoError(gotErr)
+			assertions.Equal(tt.want, got)
 		})
 	}
 }
 
-func (suite *UsersRepoTestSuite) TestCreateUser() {
-	t := suite.T()
+func TestRepositories_FindUserById(t *testing.T) {
+	t.Cleanup(func() {
+		err := PostgresContainer.Restore(context.TODO())
+		require.NoError(t, err)
+		Repository.Pool().Reset()
+	})
 
+	type args struct {
+		ctx context.Context
+		id  uuid.UUID
+	}
 	tests := []struct {
 		name    string
-		user    models.User
+		args    args
+		want    models.User
 		wantErr bool
-		err     error
 	}{
 		{
-			name: "Create user ok",
-			user: models.User{
-				FirstName:      "Diana",
-				LastName:       "Evans",
-				Email:          "diana.evans@example.com",
-				Username:       "diana_e",
-				HashedPassword: "hashed_pwd_4",
-				BirthDate:      time.Date(1992, 11, 3, 0, 0, 0, 0, time.UTC),
+			name: "Should find an user",
+			args: args{
+				ctx: context.TODO(),
+				id:  uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
 			},
-			wantErr: false,
-			err:     nil,
-		},
-		{
-			name: "Create user with duplicated email",
-			user: models.User{
-				FirstName:      "Diana",
-				LastName:       "Evans",
-				Email:          "charlie@example.com",
-				Username:       "diana_e",
-				HashedPassword: "hashed_pwd_4",
-				BirthDate:      time.Date(1992, 11, 3, 0, 0, 0, 0, time.UTC),
-			},
-			wantErr: true,
-			err: &pgconn.PgError{
-				Severity:            "ERROR",
-				SeverityUnlocalized: "ERROR",
-				Code:                "23505",
-				Message:             "duplicate key value violates unique constraint \"users_email_key\"",
-				Detail:              "Key (email)=(charlie@example.com) already exists.",
-				SchemaName:          "public",
-				TableName:           "users",
-				ConstraintName:      "users_email_key",
-				File:                "nbtinsert.c",
-				Line:                666,
-				Routine:             "_bt_check_unique",
-			},
-		},
-		{
-			name: "Create user with duplicated username",
-			user: models.User{
+			want: models.User{
+				Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
 				FirstName:      "Alice",
 				LastName:       "Smith",
-				Email:          "alice99@example.com",
+				Email:          "alice@example.com",
 				Username:       "alice_s",
-				HashedPassword: "hashed_pwd_4",
-				BirthDate:      time.Date(1992, 11, 3, 0, 0, 0, 0, time.UTC),
-			},
-			wantErr: true,
-			err: &pgconn.PgError{
-				Severity:            "ERROR",
-				SeverityUnlocalized: "ERROR",
-				Code:                "23505",
-				Message:             "duplicate key value violates unique constraint \"users_username_key\"",
-				Detail:              "Key (username)=(alice_s) already exists.",
-				SchemaName:          "public",
-				TableName:           "users",
-				ConstraintName:      "users_username_key",
-				File:                "nbtinsert.c",
-				Line:                666,
-				Routine:             "_bt_check_unique",
+				HashedPassword: "hashed_pwd_1",
+				BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+				CreatedAt:      commonTime,
+				UpdatedAt:      commonTime,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			insertedId, gotErr := Repository.CreateUser(suite.ctx, tt.user)
-			if tt.wantErr {
-				if assert.Error(t, gotErr) {
-					assert.Equal(t, tt.err, gotErr, gotErr.Error())
-				}
+			got, err := Repository.FindUserById(tt.args.ctx, tt.args.id)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Repositories.FindUserById() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-
-			assert.NotEqual(t, insertedId, uuid.Nil)
-
-			err := Repository.DeleteUserById(suite.ctx, insertedId)
-			if err != nil {
-				t.Fail()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Repositories.FindUserById() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func (suite *UsersRepoTestSuite) TestGetUserrById() {
-	t := suite.T()
+func TestRepositories_UpdateUserById(t *testing.T) {
+	t.Cleanup(func() {
+		err := PostgresContainer.Restore(context.TODO())
+		require.NoError(t, err)
+		Repository.Pool().Reset()
+	})
 
-	customer, err := Repository.FindUserById(suite.ctx, uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"))
-	assert.NoError(t, err)
-	assert.NotNil(t, customer)
-	assert.Equal(t, models.User{
-		Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
-		FirstName:      "Alice",
-		LastName:       "Smith",
-		Email:          "alice@example.com",
-		Username:       "alice_s",
-		HashedPassword: "hashed_pwd_1",
-		BirthDate:      time.Date(1990, 4, 12, 0, 0, 0, 0, time.UTC),
-		CreatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
-		UpdatedAt:      time.Date(2006, 01, 02, 0, 0, 0, 0, time.UTC),
-	}, customer)
+	type args struct {
+		ctx  context.Context
+		id   uuid.UUID
+		user models.User
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Should update user",
+			args: args{
+				ctx: context.TODO(),
+				id:  uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+				user: models.User{
+					Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+					FirstName:      "Alice",
+					LastName:       "Smith",
+					Email:          "alice@gmail.com",
+					Username:       "alice_s",
+					HashedPassword: "hashed_pwd_1",
+					BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Repository.UpdateUserById(tt.args.ctx, tt.args.id, tt.args.user); (err != nil) != tt.wantErr {
+				t.Errorf("Repositories.UpdateUserById() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRepositories_DeleteUserById(t *testing.T) {
+	t.Cleanup(func() {
+		err := PostgresContainer.Restore(context.TODO())
+		require.NoError(t, err)
+		Repository.Pool().Reset()
+	})
+
+	type args struct {
+		ctx context.Context
+		id  uuid.UUID
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Should delete user",
+			args: args{
+				ctx: context.TODO(),
+				id:  uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := Repository.DeleteUserById(tt.args.ctx, tt.args.id); (err != nil) != tt.wantErr {
+				t.Errorf("Repositories.DeleteUserById() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }

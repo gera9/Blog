@@ -19,6 +19,7 @@ func NewPostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		postgres.WithPassword("example"),
 		postgres.WithInitScripts(filepath.Join(".", "testdata", "init-db.sql")),
 		postgres.BasicWaitStrategies(),
+		postgres.WithSQLDriver("pgx"),
 	)
 	if err != nil {
 		return nil, err

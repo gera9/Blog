@@ -32,10 +32,16 @@ func SetUp() {
 		log.Fatal(err)
 	}
 
+	err = PostgresContainer.Snapshot(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	Repository, err = repositories.NewRepositories(ctx, PostgresContainer.ConnectionString, utils.MockClock{})
 	if err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 func TearDown() {

@@ -1,14 +1,24 @@
-# syntax=docker/dockerfile:1
+FROM golang:1.25-alpine AS builder
 
-FROM golang:1.25-alpine
+WORKDIR /build
 
-WORKDIR /usr/src/app
+RUN apk update && apk add tzdata
 
-# pre-copy/cache go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
+
 RUN go mod download
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app cmd/blog/main.go
 
-CMD ["app"]
+RUN CGO_ENABLED=0 go build -v -o blog
+
+# Production stage
+FROM scratch AS production
+
+WORKDIR /prod
+
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+
+COPY --from=builder /build/blog .
+
+CMD [ "/prod/blog" ]

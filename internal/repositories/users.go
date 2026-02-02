@@ -12,8 +12,6 @@ import (
 const usersTableName = "users"
 
 func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
-	// prepare values
-	id := uuid.New()
 	now := r.timeProvider.Now().UTC()
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = now
@@ -23,12 +21,11 @@ func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	}
 
 	sql := `INSERT INTO ` + usersTableName + ` (
-		id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
-	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`
+		first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
+	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
 
 	var returnedID uuid.UUID
 	err := r.connPool.QueryRow(ctx, sql,
-		id,
 		user.FirstName,
 		user.LastName,
 		user.Email,
