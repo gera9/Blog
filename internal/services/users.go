@@ -16,20 +16,28 @@ type UsersRepository interface {
 	DeleteUserById(ctx context.Context, id uuid.UUID) error
 }
 
-func (s Services) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
-	return s.UsersRepository.CreateUser(ctx, user)
+type usersService struct {
+	repo UsersRepository
 }
 
-func (s Services) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
-	return s.UsersRepository.FindAllUsers(ctx, limit, offset)
+func NewUsersService(repo UsersRepository) *usersService {
+	return &usersService{repo: repo}
 }
 
-func (s Services) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
-	return s.UsersRepository.FindUserById(ctx, id)
+func (s usersService) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+	return s.repo.CreateUser(ctx, user)
 }
 
-func (s Services) UpdateUserById(ctx context.Context, id uuid.UUID, newUser models.User) error {
-	user, err := s.UsersRepository.FindUserById(ctx, id)
+func (s usersService) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
+	return s.repo.FindAllUsers(ctx, limit, offset)
+}
+
+func (s usersService) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
+	return s.repo.FindUserById(ctx, id)
+}
+
+func (s usersService) UpdateUserById(ctx context.Context, id uuid.UUID, newUser models.User) error {
+	user, err := s.repo.FindUserById(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -39,9 +47,9 @@ func (s Services) UpdateUserById(ctx context.Context, id uuid.UUID, newUser mode
 		return err
 	}
 
-	return s.UsersRepository.UpdateUserById(ctx, id, user)
+	return s.repo.UpdateUserById(ctx, id, user)
 }
 
-func (s Services) DeleteUserById(ctx context.Context, id uuid.UUID) error {
-	return s.UsersRepository.DeleteUserById(ctx, id)
+func (s usersService) DeleteUserById(ctx context.Context, id uuid.UUID) error {
+	return s.repo.DeleteUserById(ctx, id)
 }

@@ -8,12 +8,16 @@ import (
 
 	"github.com/gera9/blog/internal/repositories"
 	"github.com/gera9/blog/internal/repositories/testhelpers"
+	"github.com/gera9/blog/pkg/postgres"
 	"github.com/gera9/blog/pkg/utils"
 )
 
 var (
 	PostgresContainer *testhelpers.PostgresContainer
-	Repository        *repositories.Repositories
+	PostgresConn      *postgres.Postgres
+
+	UsersRepo *repositories.UsersRepository
+	PostsRepo *repositories.PostsRepository
 )
 
 func TestMain(m *testing.M) {
@@ -37,15 +41,17 @@ func SetUp() {
 		log.Fatal(err)
 	}
 
-	Repository, err = repositories.NewRepositories(ctx, PostgresContainer.ConnectionString, utils.MockClock{})
+	PostgresConn, err = postgres.NewPostgres(ctx, PostgresContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	UsersRepo = repositories.NewUsersRepository(PostgresConn, utils.MockClock{})
+	PostsRepo = repositories.NewPostsRepository(PostgresConn, utils.MockClock{})
 }
 
 func TearDown() {
-	Repository.Close()
+	PostgresConn.Close()
 	ctx := context.Background()
 	if err := PostgresContainer.Terminate(ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)

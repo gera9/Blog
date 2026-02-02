@@ -1,24 +1,22 @@
-package repositories
+package postgres
 
 import (
 	"context"
 	"sync"
 
-	"github.com/gera9/blog/pkg/utils"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Repositories struct {
-	connPool     *pgxpool.Pool
-	timeProvider utils.TimeProvider
+type Postgres struct {
+	connPool *pgxpool.Pool
 }
 
 var (
 	once     sync.Once
-	instance *Repositories
+	instance *Postgres
 )
 
-func NewRepositories(ctx context.Context, connStr string, timeProvider utils.TimeProvider) (*Repositories, error) {
+func NewPostgres(ctx context.Context, connStr string) (*Postgres, error) {
 	var err error
 	once.Do(func() {
 		var cfg *pgxpool.Config
@@ -40,7 +38,7 @@ func NewRepositories(ctx context.Context, connStr string, timeProvider utils.Tim
 			return
 		}
 
-		instance = &Repositories{connPool, timeProvider}
+		instance = &Postgres{connPool}
 	})
 	if err != nil {
 		return nil, err
@@ -50,10 +48,10 @@ func NewRepositories(ctx context.Context, connStr string, timeProvider utils.Tim
 }
 
 // Get underlying connections pool.
-func (r Repositories) Pool() *pgxpool.Pool {
-	return r.connPool
+func (p Postgres) Pool() *pgxpool.Pool {
+	return p.connPool
 }
 
-func (r Repositories) Close() {
-	r.connPool.Close()
+func (p Postgres) Close() {
+	p.connPool.Close()
 }

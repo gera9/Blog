@@ -6,12 +6,28 @@ import (
 	"time"
 
 	"github.com/gera9/blog/internal/models"
+	"github.com/gera9/blog/pkg/postgres"
+	"github.com/gera9/blog/pkg/utils"
 	"github.com/google/uuid"
 )
 
 const usersTableName = "users"
 
-func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
+type UsersRepository struct {
+	conn         *postgres.Postgres
+	timeProvider utils.TimeProvider
+	tableName    string
+}
+
+func NewUsersRepository(conn *postgres.Postgres, timeProvider utils.TimeProvider) *UsersRepository {
+	return &UsersRepository{
+		conn:         conn,
+		timeProvider: timeProvider,
+		tableName:    "users",
+	}
+}
+
+func (r UsersRepository) CreateUser(ctx context.Context, user models.User) (uuid.UUID, error) {
 	now := r.timeProvider.Now().UTC()
 	if user.CreatedAt.IsZero() {
 		user.CreatedAt = now
@@ -25,7 +41,7 @@ func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`
 
 	var returnedID uuid.UUID
-	err := r.connPool.QueryRow(ctx, sql,
+	err := r.conn.Pool().QueryRow(ctx, sql,
 		user.FirstName,
 		user.LastName,
 		user.Email,
@@ -42,11 +58,11 @@ func (r Repositories) CreateUser(ctx context.Context, user models.User) (uuid.UU
 	return returnedID, nil
 }
 
-func (r Repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
+func (r UsersRepository) FindAllUsers(ctx context.Context, limit, offset int) ([]models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
 	FROM ` + usersTableName + ` ORDER BY created_at DESC LIMIT $1 OFFSET $2`
 
-	rows, err := r.connPool.Query(ctx, sql, limit, offset)
+	rows, err := r.conn.Pool().Query(ctx, sql, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +109,7 @@ func (r Repositories) FindAllUsers(ctx context.Context, limit, offset int) ([]mo
 	return users, nil
 }
 
-func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
+func (r UsersRepository) FindUserById(ctx context.Context, id uuid.UUID) (models.User, error) {
 	sql := `SELECT id, first_name, last_name, email, username, hashed_password, birth_date, created_at, updated_at
 	FROM ` + usersTableName + ` WHERE id = $1`
 
@@ -109,7 +125,7 @@ func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.Us
 		updatedAt  time.Time
 	)
 
-	err := r.connPool.QueryRow(ctx, sql, id).Scan(&uuid, &firstName, &lastName, &email, &username, &hashedPass, &birthDate, &createdAt, &updatedAt)
+	err := r.conn.Pool().QueryRow(ctx, sql, id).Scan(&uuid, &firstName, &lastName, &email, &username, &hashedPass, &birthDate, &createdAt, &updatedAt)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -130,7 +146,7 @@ func (r Repositories) FindUserById(ctx context.Context, id uuid.UUID) (models.Us
 	}, nil
 }
 
-func (r Repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
+func (r UsersRepository) UpdateUserById(ctx context.Context, id uuid.UUID, user models.User) error {
 	// update the allowed fields and updated_at
 	now := r.timeProvider.Now().UTC()
 
@@ -143,7 +159,7 @@ func (r Repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user mod
 		updated_at = $6
 	WHERE id = $7`
 
-	tag, err := r.connPool.Exec(ctx, sql,
+	tag, err := r.conn.Pool().Exec(ctx, sql,
 		user.FirstName,
 		user.LastName,
 		user.Email,
@@ -163,10 +179,10 @@ func (r Repositories) UpdateUserById(ctx context.Context, id uuid.UUID, user mod
 	return nil
 }
 
-func (r Repositories) DeleteUserById(ctx context.Context, id uuid.UUID) error {
+func (r UsersRepository) DeleteUserById(ctx context.Context, id uuid.UUID) error {
 	sql := `DELETE FROM ` + usersTableName + ` WHERE id = $1`
 
-	tag, err := r.connPool.Exec(ctx, sql, id)
+	tag, err := r.conn.Pool().Exec(ctx, sql, id)
 	if err != nil {
 		return err
 	}
