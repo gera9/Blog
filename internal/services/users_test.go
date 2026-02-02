@@ -4,10 +4,14 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/gera9/blog/internal/models"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
+
+var commonTime = time.Date(2006, time.January, 02, 0, 0, 0, 0, time.UTC)
 
 func TestNewUsersService(t *testing.T) {
 	type args struct {
@@ -18,7 +22,13 @@ func TestNewUsersService(t *testing.T) {
 		args args
 		want *usersService
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should create a new user service",
+			args: args{
+				repo: NewMockUsersRepository(t),
+			},
+			want: NewUsersService(NewMockUsersRepository(t)),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -31,7 +41,7 @@ func TestNewUsersService(t *testing.T) {
 
 func Test_usersService_CreateUser(t *testing.T) {
 	type fields struct {
-		repo UsersRepository
+		repo *MockUsersRepository
 	}
 	type args struct {
 		ctx  context.Context
@@ -44,28 +54,64 @@ func Test_usersService_CreateUser(t *testing.T) {
 		want    uuid.UUID
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should create a new user",
+			args: args{
+				ctx: context.TODO(),
+				user: models.User{
+					Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+					FirstName:      "Alice",
+					LastName:       "Smith",
+					Email:          "alice@example.com",
+					Username:       "alice_s",
+					HashedPassword: "hashed_pwd_1",
+					BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
+				},
+			},
+			fields: fields{
+				repo: func() *MockUsersRepository {
+					r := NewMockUsersRepository(t)
+					r.On("CreateUser", context.TODO(), models.User{
+						Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+						FirstName:      "Alice",
+						LastName:       "Smith",
+						Email:          "alice@example.com",
+						Username:       "alice_s",
+						HashedPassword: "hashed_pwd_1",
+						BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+						CreatedAt:      commonTime,
+						UpdatedAt:      commonTime,
+					}).Return(
+						uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+						nil,
+					)
+					return r
+				}(),
+			},
+			want: uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := usersService{
 				repo: tt.fields.repo,
 			}
+
 			got, err := s.CreateUser(tt.args.ctx, tt.args.user)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("usersService.CreateUser() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("usersService.CreateUser() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
 func Test_usersService_FindAllUsers(t *testing.T) {
 	type fields struct {
-		repo UsersRepository
+		repo *MockUsersRepository
 	}
 	type args struct {
 		ctx    context.Context
@@ -79,21 +125,63 @@ func Test_usersService_FindAllUsers(t *testing.T) {
 		want    []models.User
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "Should find all users",
+			args: args{
+				ctx:    context.TODO(),
+				limit:  100,
+				offset: 0,
+			},
+			fields: fields{
+				repo: func() *MockUsersRepository {
+					r := NewMockUsersRepository(t)
+					r.On("FindAllUsers", context.TODO(), 100, 0).Return(
+						[]models.User{
+							{
+								Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+								FirstName:      "Alice",
+								LastName:       "Smith",
+								Email:          "alice@example.com",
+								Username:       "alice_s",
+								HashedPassword: "hashed_pwd_1",
+								BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+								CreatedAt:      commonTime,
+								UpdatedAt:      commonTime,
+							},
+						},
+						nil,
+					)
+					return r
+				}(),
+			},
+			want: []models.User{
+				{
+					Id:             uuid.MustParse("0853f607-2422-4631-8526-832edaa479c4"),
+					FirstName:      "Alice",
+					LastName:       "Smith",
+					Email:          "alice@example.com",
+					Username:       "alice_s",
+					HashedPassword: "hashed_pwd_1",
+					BirthDate:      time.Date(1990, time.April, 12, 0, 0, 0, 0, time.UTC),
+					CreatedAt:      commonTime,
+					UpdatedAt:      commonTime,
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := usersService{
 				repo: tt.fields.repo,
 			}
+
 			got, err := s.FindAllUsers(tt.args.ctx, tt.args.limit, tt.args.offset)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("usersService.FindAllUsers() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("usersService.FindAllUsers() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
